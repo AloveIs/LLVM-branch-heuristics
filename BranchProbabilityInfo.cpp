@@ -64,6 +64,20 @@ INITIALIZE_PASS_DEPENDENCY(TargetLibraryInfoWrapperPass)
 INITIALIZE_PASS_END(BranchProbabilityInfoWrapperPass, "branch-prob",
                     "Branch Probability Analysis", false, true)
 
+// Print basick block name.
+//
+// Prints the basic block number if it doesn't have a name.
+static std::string getSimpleNodeLabel(const BasicBlock *Node) {
+    if (!Node->getName().empty())
+        return Node->getName().str();
+
+    std::string Str;
+    raw_string_ostream OS(Str);
+
+    Node->printAsOperand(OS, false);
+    return OS.str();
+}
+
 BranchProbabilityInfoWrapperPass::BranchProbabilityInfoWrapperPass()
     : FunctionPass(ID) {
   initializeBranchProbabilityInfoWrapperPassPass(
@@ -964,7 +978,7 @@ BranchProbabilityInfo::printEdgeProbability(raw_ostream &OS,
                                             const BasicBlock *Src,
                                             const BasicBlock *Dst) const {
   const BranchProbability Prob = getEdgeProbability(Src, Dst);
-  OS << "edge " << Src->getName() << " -> " << Dst->getName()
+  OS << "edge " << getSimpleNodeLabel(Src) << " -> " << getSimpleNodeLabel(Dst)
      << " probability is " << Prob
      << (isEdgeHot(Src, Dst) ? " [HOT edge]\n" : "\n");
 
