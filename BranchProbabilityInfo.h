@@ -34,7 +34,6 @@ namespace llvm {
 class Function;
 class LoopInfo;
 class raw_ostream;
-class PostDominatorTree;
 class TargetLibraryInfo;
 class Value;
 
@@ -75,9 +74,6 @@ public:
     return *this;
   }
 
-  bool invalidate(Function &, const PreservedAnalyses &PA,
-                  FunctionAnalysisManager::Invalidator &);
-
   void releaseMemory();
 
   void print(raw_ostream &OS) const;
@@ -98,7 +94,7 @@ public:
                                        const BasicBlock *Dst) const;
 
   BranchProbability getEdgeProbability(const BasicBlock *Src,
-                                       const_succ_iterator Dst) const;
+                                       succ_const_iterator Dst) const;
 
   /// Test if an edge is hot relative to other out-edges of the Src.
   ///
@@ -183,7 +179,7 @@ private:
   DenseMap<Edge, BranchProbability> Probs;
 
   /// Track the last function we run over for printing.
-  const Function *LastF = nullptr;
+  const Function *LastF;
 
   /// Track the set of blocks directly succeeded by a returning block.
   SmallPtrSet<const BasicBlock *, 16> PostDominatedByUnreachable;
@@ -191,10 +187,8 @@ private:
   /// Track the set of blocks that always lead to a cold call.
   SmallPtrSet<const BasicBlock *, 16> PostDominatedByColdCall;
 
-  void computePostDominatedByUnreachable(const Function &F,
-                                         PostDominatorTree *PDT);
-  void computePostDominatedByColdCall(const Function &F,
-                                      PostDominatorTree *PDT);
+  void updatePostDominatedByUnreachable(const BasicBlock *BB);
+  void updatePostDominatedByColdCall(const BasicBlock *BB);
   bool calcUnreachableHeuristics(const BasicBlock *BB);
   bool calcMetadataWeights(const BasicBlock *BB);
   bool calcColdCallHeuristics(const BasicBlock *BB);
@@ -204,6 +198,29 @@ private:
   bool calcZeroHeuristics(const BasicBlock *BB, const TargetLibraryInfo *TLI);
   bool calcFloatingPointHeuristics(const BasicBlock *BB);
   bool calcInvokeHeuristics(const BasicBlock *BB);
+  // Wu and Larus heuristics
+  bool calcUnreachableHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcMetadataWeightsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcColdCallHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcPointerHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcLoopBranchHeuristicsWL(const BasicBlock *BB, const LoopInfo &LI,
+                                SccInfo &SccI ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcZeroHeuristicsWL(const BasicBlock *BB, const TargetLibraryInfo *TLI ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcFloatingPointHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcInvokeHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  // more wl
+  bool calcCallHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcReturnHeuristicsWL(const BasicBlock *BB ,
+                              std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
 };
 
 /// Analysis pass which computes \c BranchProbabilityInfo.
@@ -239,7 +256,10 @@ class BranchProbabilityInfoWrapperPass : public FunctionPass {
 public:
   static char ID;
 
-  BranchProbabilityInfoWrapperPass();
+  BranchProbabilityInfoWrapperPass() : FunctionPass(ID) {
+    initializeBranchProbabilityInfoWrapperPassPass(
+        *PassRegistry::getPassRegistry());
+  }
 
   BranchProbabilityInfo &getBPI() { return BPI; }
   const BranchProbabilityInfo &getBPI() const { return BPI; }
@@ -253,4 +273,3 @@ public:
 } // end namespace llvm
 
 #endif // LLVM_ANALYSIS_BRANCHPROBABILITYINFO_H
-
