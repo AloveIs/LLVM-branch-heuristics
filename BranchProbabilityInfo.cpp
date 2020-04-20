@@ -1553,7 +1553,7 @@ bool BranchProbabilityInfo::calcLoopBranchHeuristicsWL(const BasicBlock *BB,
   }
 
   // one is inside the loop and the other exits
-  if (BackEdges.size() == 1 && InEdges.size() == 1 && ExitingEdges.size() == 1) {
+  if (BackEdges.size() == 0 && InEdges.size() == 1 && ExitingEdges.size() == 1) {
     BranchProbability TakenProb = BranchProbability(80, 100);
     auto Prob = TakenProb;
     for (unsigned SuccIdx : InEdges){
@@ -1584,23 +1584,6 @@ bool BranchProbabilityInfo::calcLoopBranchHeuristicsWL(const BasicBlock *BB,
 //      }
 //    }
 //  }
-
-  if (UnlikelyEdges.size() == 1) {
-    BranchProbability UnlikelyProb = BranchProbability(40, 100);
-    auto Prob = UnlikelyProb;
-    for (unsigned SuccIdx : UnlikelyEdges){
-      // setEdgeProbability(BB, SuccIdx, Prob);
-      if(SuccIdx == 0){
-        Tks.push_back(Prob);
-        NTks.push_back(Prob.getCompl());
-      }
-      if(SuccIdx == 1){
-        NTks.push_back(Prob);
-        Tks.push_back(Prob.getCompl());
-      }
-    }
-    return true;
-  }
 
   return false;
 }
@@ -1926,31 +1909,29 @@ void BranchProbabilityInfo::calculate(const Function &F, const LoopInfo &LI,
       //  continue;
       //if (calcColdCallHeuristicsWL(BB, Takens, NotTakens))
       //  applied_heuristics++;
-      if (calcCallHeuristicsWL(BB, PDT, Takens, NotTakens))
+
+      // Loop-branch heuristic
+      if (!applied_heuristics && calcLoopBranchHeuristicsWL(BB, LI, SccI, Takens, NotTakens))
         applied_heuristics++;
-      //errs() << "Ret heu" << "\n";
-      if (calcReturnHeuristicsWL(BB, PDT, Takens, NotTakens))
+      
+      // Non-loop heuristics
+      if (!applied_heuristics && calcCallHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      //errs() << "Ret heu" << "\n";
-      //errs() << "Store heu" << "\n";
-      if (calcStoreHeuristicsWL(BB, PDT, Takens, NotTakens))
+      if (!applied_heuristics && calcReturnHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      //errs() << "Store heu" << "\n";
-      if (calcLoopBranchHeuristicsWL(BB, LI, SccI, Takens, NotTakens))
+      if (!applied_heuristics && calcStoreHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      //errs() << "Loop heu" << "\n";
-      if(calcLoopHeuristicsWL(BB, LI, SccI, PDT, Takens, NotTakens))
+      if (!applied_heuristics && calcLoopHeuristicsWL(BB, LI, SccI, PDT, Takens, NotTakens))
         applied_heuristics++;
-      //errs() << "Loop heu" << "\n";
-      if (calcPointerHeuristicsWL(BB, Takens, NotTakens))
+      if (!applied_heuristics && calcPointerHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
-      if (calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
+      if (!applied_heuristics && calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
         applied_heuristics++;
-      if (calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
+      if (!applied_heuristics && calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
 
       assert(Takens.size() == NotTakens.size());
-      assert(Takens.size() == applied_heuristics);
+      assert(Takens.size() == 1);
 
       double tkn_partial  = 0.5;
       double ntkn_partial = 0.5;
