@@ -13,12 +13,14 @@
 #ifndef LLVM_ANALYSIS_BRANCHPROBABILITYINFO_H
 #define LLVM_ANALYSIS_BRANCHPROBABILITYINFO_H
 
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/Pass.h"
@@ -54,8 +56,10 @@ public:
   BranchProbabilityInfo() = default;
 
   BranchProbabilityInfo(const Function &F, const LoopInfo &LI,
-                        const TargetLibraryInfo *TLI = nullptr) {
-    calculate(F, LI, TLI);
+                        const TargetLibraryInfo *TLI = nullptr,
+                        const DominatorTree *DT = nullptr,
+                        const PostDominatorTree *PDT = nullptr) {
+    calculate(F, LI, TLI, DT, PDT);
   }
 
   BranchProbabilityInfo(BranchProbabilityInfo &&Arg)
@@ -131,7 +135,9 @@ public:
   }
 
   void calculate(const Function &F, const LoopInfo &LI,
-                 const TargetLibraryInfo *TLI = nullptr);
+                 const TargetLibraryInfo *TLI = nullptr,
+                 const DominatorTree *DT = nullptr,
+                 const PostDominatorTree *PDT = nullptr);
 
   /// Forget analysis results for the given basic block.
   void eraseBlock(const BasicBlock *BB);
@@ -217,10 +223,17 @@ private:
   bool calcInvokeHeuristicsWL(const BasicBlock *BB ,
                               std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
   // more wl
-  bool calcCallHeuristicsWL(const BasicBlock *BB ,
+  bool calcCallHeuristicsWL(const BasicBlock *BB , const PostDominatorTree *PDT,
                               std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
-  bool calcReturnHeuristicsWL(const BasicBlock *BB ,
+  bool calcReturnHeuristicsWL(const BasicBlock *BB , const PostDominatorTree *PDT,
                               std::vector<BranchProbability>& Tks, std::vector<BranchProbability>& NTks);
+  bool calcLoopHeuristicsWL(const BasicBlock *BB, const LoopInfo &LI, SccInfo &SccI, 
+                              const PostDominatorTree *PDT, std::vector<BranchProbability>& Tks,
+                              std::vector<BranchProbability>& NTks);
+  bool calcStoreHeuristicsWL(const BasicBlock *BB,
+    const PostDominatorTree *PDT,
+    std::vector<BranchProbability>& Tks,
+    std::vector<BranchProbability>& NTks);
 };
 
 /// Analysis pass which computes \c BranchProbabilityInfo.
