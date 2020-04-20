@@ -1915,19 +1915,19 @@ void BranchProbabilityInfo::calculate(const Function &F, const LoopInfo &LI,
         applied_heuristics++;
       
       // Non-loop heuristics
+      if (!applied_heuristics && calcPointerHeuristicsWL(BB, Takens, NotTakens))
+        applied_heuristics++;
       if (!applied_heuristics && calcCallHeuristicsWL(BB, PDT, Takens, NotTakens))
+        applied_heuristics++;
+      if (!applied_heuristics && calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
+        applied_heuristics++;
+      if (!applied_heuristics && calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
       if (!applied_heuristics && calcReturnHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
       if (!applied_heuristics && calcStoreHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
       if (!applied_heuristics && calcLoopHeuristicsWL(BB, LI, SccI, PDT, Takens, NotTakens))
-        applied_heuristics++;
-      if (!applied_heuristics && calcPointerHeuristicsWL(BB, Takens, NotTakens))
-        applied_heuristics++;
-      if (!applied_heuristics && calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
-        applied_heuristics++;
-      if (!applied_heuristics && calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
 
       assert(Takens.size() == NotTakens.size());
