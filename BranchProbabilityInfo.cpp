@@ -1553,7 +1553,7 @@ bool BranchProbabilityInfo::calcLoopBranchHeuristicsWL(const BasicBlock *BB,
   }
 
   // one is inside the loop and the other exits
-  if (BackEdges.size() == 1 && InEdges.size() == 1 && ExitingEdges.size() == 1) {
+  if (BackEdges.size() == 0 && InEdges.size() == 1 && ExitingEdges.size() == 1) {
     BranchProbability TakenProb = BranchProbability(80, 100);
     auto Prob = TakenProb;
     for (unsigned SuccIdx : InEdges){
