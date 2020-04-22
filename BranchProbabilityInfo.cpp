@@ -1185,7 +1185,7 @@ bool BranchProbabilityInfo::calcCallHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> CallsFunction;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasCall(I) && !PDT->dominates(I, BB))
+    if(hasCall(I) && (!PDT|| !PDT->dominates(I, BB)))
       CallsFunction.push_back(idx);
   }
 
@@ -1239,7 +1239,7 @@ bool BranchProbabilityInfo::calcStoreHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> StoresVariable;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasStore(I) && !PDT->dominates(I, BB))
+    if(hasStore(I) && (!PDT|| !PDT->dominates(I, BB)))
       StoresVariable.push_back(idx);
   }
 
@@ -1297,7 +1297,7 @@ bool BranchProbabilityInfo::calcReturnHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> ReturnsBB;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasReturn(I) && !PDT->dominates(I, BB))
+    if(hasReturn(I) && (!PDT|| !PDT->dominates(I, BB)))
       ReturnsBB.push_back(idx);
   }
 
@@ -1439,7 +1439,7 @@ bool BranchProbabilityInfo::calcLoopHeuristicsWL(const BasicBlock *BB,
     Loop *SuccL = LI.getLoopFor(I);
     //errs() << "LE: " << idx << " got Loop" << "\n";
     // does not postdominate the branch
-    if(!PDT->dominates(I, BB)){
+    if(!PDT || !PDT->dominates(I, BB)){
       // if it is the header
       //errs() << "LE: " << idx << " Check 1" << "\n";
       if(SuccL && L != SuccL && SuccL->getHeader() == I){
@@ -1850,7 +1850,9 @@ void BranchProbabilityInfo::calculate(const Function &F, const LoopInfo &LI,
                                       const PostDominatorTree *PDT) {
   LLVM_DEBUG(dbgs() << "---- Branch Probability Info : " << F.getName()
                     << " ----\n\n");
-
+  //Function& FFF = static_cast<Function&>(FF);
+  //if(!DT || !PDT)
+  //  errs() << "DT " << DT << " PDT " << PDT << "\n";
   //errs() << "++--++ " << F.getName() << " PDT " << PDT << "\n";
   LastF = &F; // Store the last function we ran on for printing.
   assert(PostDominatedByUnreachable.empty());
