@@ -1164,10 +1164,14 @@ bool hasCall(const BasicBlock *BB){
       return true;
     }
   }
-  if(TI->getNumSuccessors() == 1)
-    return hasCall(BB->getSingleSuccessor());
-  else
-    return false;
+  if(TI->getNumSuccessors() == 1){
+    for (auto &Inst : *BB->getSingleSuccessor()){
+      if (const CallInst *CI = dyn_cast<CallInst>(&Inst)){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool BranchProbabilityInfo::calcCallHeuristicsWL(const BasicBlock *BB,
@@ -1276,10 +1280,14 @@ bool hasReturn(const BasicBlock *BB){
       return true;
     }
   }
-  if(TI->getNumSuccessors() == 1)
-    return hasReturn(BB->getSingleSuccessor());
-  else
-    return false;
+  if(TI->getNumSuccessors() == 1){
+    for (auto &Inst : *BB->getSingleSuccessor()){
+      if (const ReturnInst *CI = dyn_cast<ReturnInst>(&Inst)){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool BranchProbabilityInfo::calcReturnHeuristicsWL(const BasicBlock *BB,
