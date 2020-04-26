@@ -1164,10 +1164,14 @@ bool hasCall(const BasicBlock *BB){
       return true;
     }
   }
-  if(TI->getNumSuccessors() == 1)
-    return hasCall(BB->getSingleSuccessor());
-  else
-    return false;
+  if(TI->getNumSuccessors() == 1){
+    for (auto &Inst : *BB->getSingleSuccessor()){
+      if (const CallInst *CI = dyn_cast<CallInst>(&Inst)){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool BranchProbabilityInfo::calcCallHeuristicsWL(const BasicBlock *BB,
@@ -1185,7 +1189,7 @@ bool BranchProbabilityInfo::calcCallHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> CallsFunction;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasCall(I) && !PDT->dominates(I, BB))
+    if(hasCall(I) && (!PDT|| !PDT->dominates(I, BB)))
       CallsFunction.push_back(idx);
   }
 
@@ -1239,7 +1243,7 @@ bool BranchProbabilityInfo::calcStoreHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> StoresVariable;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasStore(I) && !PDT->dominates(I, BB))
+    if(hasStore(I) && (!PDT|| !PDT->dominates(I, BB)))
       StoresVariable.push_back(idx);
   }
 
@@ -1276,10 +1280,14 @@ bool hasReturn(const BasicBlock *BB){
       return true;
     }
   }
-  if(TI->getNumSuccessors() == 1)
-    return hasReturn(BB->getSingleSuccessor());
-  else
-    return false;
+  if(TI->getNumSuccessors() == 1){
+    for (auto &Inst : *BB->getSingleSuccessor()){
+      if (const ReturnInst *CI = dyn_cast<ReturnInst>(&Inst)){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool BranchProbabilityInfo::calcReturnHeuristicsWL(const BasicBlock *BB,
@@ -1297,7 +1305,7 @@ bool BranchProbabilityInfo::calcReturnHeuristicsWL(const BasicBlock *BB,
   SmallVector<unsigned, 2> ReturnsBB;
   for (unsigned idx = 0; idx < TI->getNumSuccessors(); idx++){
     const BasicBlock *I  = TI->getSuccessor(idx);
-    if(hasReturn(I) && !PDT->dominates(I, BB))
+    if(hasReturn(I) && (!PDT|| !PDT->dominates(I, BB)))
       ReturnsBB.push_back(idx);
   }
 
@@ -1439,7 +1447,7 @@ bool BranchProbabilityInfo::calcLoopHeuristicsWL(const BasicBlock *BB,
     Loop *SuccL = LI.getLoopFor(I);
     //errs() << "LE: " << idx << " got Loop" << "\n";
     // does not postdominate the branch
-    if(!PDT->dominates(I, BB)){
+    if(!PDT || !PDT->dominates(I, BB)){
       // if it is the header
       //errs() << "LE: " << idx << " Check 1" << "\n";
       if(SuccL && L != SuccL && SuccL->getHeader() == I){
@@ -1584,6 +1592,23 @@ bool BranchProbabilityInfo::calcLoopBranchHeuristicsWL(const BasicBlock *BB,
 //      }
 //    }
 //  }
+
+  if (UnlikelyEdges.size() == 1) {
+    BranchProbability UnlikelyProb = BranchProbability(40, 100);
+    auto Prob = UnlikelyProb;
+    for (unsigned SuccIdx : UnlikelyEdges){
+      // setEdgeProbability(BB, SuccIdx, Prob);
+      if(SuccIdx == 0){
+        Tks.push_back(Prob);
+        NTks.push_back(Prob.getCompl());
+      }
+      if(SuccIdx == 1){
+        NTks.push_back(Prob);
+        Tks.push_back(Prob.getCompl());
+      }
+    }
+    return true;
+  }
 
   return false;
 }
