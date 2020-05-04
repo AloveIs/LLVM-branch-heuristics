@@ -184,6 +184,7 @@ private:
 
   DenseMap<Edge, BranchProbability> Probs;
 
+  Function* CurrF;
   /// Track the last function we run over for printing.
   const Function *LastF;
 

@@ -1858,7 +1858,9 @@ void BranchProbabilityInfo::calculate(const Function &F, const LoopInfo &LI,
                                       const PostDominatorTree *PDT) {
   LLVM_DEBUG(dbgs() << "---- Branch Probability Info : " << F.getName()
                     << " ----\n\n");
-
+  //Function& FFF = static_cast<Function&>(FF);
+  //if(!DT || !PDT)
+  //  errs() << "DT " << DT << " PDT " << PDT << "\n";
   //errs() << "++--++ " << F.getName() << " PDT " << PDT << "\n";
   LastF = &F; // Store the last function we ran on for printing.
   assert(PostDominatedByUnreachable.empty());
@@ -1934,29 +1936,31 @@ void BranchProbabilityInfo::calculate(const Function &F, const LoopInfo &LI,
       //  continue;
       //if (calcColdCallHeuristicsWL(BB, Takens, NotTakens))
       //  applied_heuristics++;
-
-      // Loop-branch heuristic
-      if (!applied_heuristics && calcLoopBranchHeuristicsWL(BB, LI, SccI, Takens, NotTakens))
+      if (calcCallHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      
-      // Non-loop heuristics
-      if (!applied_heuristics && calcPointerHeuristicsWL(BB, Takens, NotTakens))
+      //errs() << "Ret heu" << "\n";
+      if (calcReturnHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcCallHeuristicsWL(BB, PDT, Takens, NotTakens))
+      //errs() << "Ret heu" << "\n";
+      //errs() << "Store heu" << "\n";
+      if (calcStoreHeuristicsWL(BB, PDT, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
+      //errs() << "Store heu" << "\n";
+      if (calcLoopBranchHeuristicsWL(BB, LI, SccI, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
+      //errs() << "Loop heu" << "\n";
+      if(calcLoopHeuristicsWL(BB, LI, SccI, PDT, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcReturnHeuristicsWL(BB, PDT, Takens, NotTakens))
+      //errs() << "Loop heu" << "\n";
+      if (calcPointerHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcStoreHeuristicsWL(BB, PDT, Takens, NotTakens))
+      if (calcZeroHeuristicsWL(BB, TLI, Takens, NotTakens))
         applied_heuristics++;
-      if (!applied_heuristics && calcLoopHeuristicsWL(BB, LI, SccI, PDT, Takens, NotTakens))
+      if (calcFloatingPointHeuristicsWL(BB, Takens, NotTakens))
         applied_heuristics++;
 
       assert(Takens.size() == NotTakens.size());
-      assert(Takens.size() == 1);
+      assert(Takens.size() == applied_heuristics);
 
       double tkn_partial  = 0.5;
       double ntkn_partial = 0.5;
